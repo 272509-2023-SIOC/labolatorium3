@@ -38,30 +38,6 @@ def scale_and_shift_kernel(kernel, xi, x):
     kernel_scaled = np.maximum(0, 1 - distances / kernel_width)
     return kernel_scaled
 
-# Parametry
-N = 100
-multipliers = [2, 4, 10]
-
-# Dane wejściowe
-x_original = np.linspace(-np.pi, np.pi, N)
-y_original = simplesin(x_original)
-
-# Wykresy
-plt.plot(x_original, y_original, label='Original function', color='blue')
-
-# Interpolacja i obliczanie MSE
-for multiplier in multipliers:
-    # Jądro liniowe
-    x_interpolate, y_interpolate = interpolate_function(x_original, y_original, np.ones(3), multiplier)
-
-    mse_original = np.mean((simplesin(x_interpolate) - y_interpolate)**2)
-    print(f'MSE for linear kernel with {multiplier} times more points (original function): {mse_original}')
-
-    plt.plot(x_interpolate, y_interpolate, label=f'Linear kernel, {multiplier}x points (original function)', alpha=0.7)
-
-plt.legend()
-plt.show()
-
 # Definicja jądra Lanczosa
 def lanczos_kernel(a):
     def kernel(x):
@@ -73,22 +49,72 @@ def lanczos_kernel(a):
             return 0
     return np.vectorize(kernel)
 
-# Parametry i dane
-a = 3  # parametr jądra Lanczosa
-lanczos = lanczos_kernel(a)  # jądro Lanczosa
+# Definicja jądra sinc
+def sinc_kernel(a):
+    def kernel(x):
+        if x == 0:
+            return 1
+        else:
+            return np.sinc(x / a)
+    return np.vectorize(kernel)
 
-# Zmodyfikowany kod z dodanym jądrem Lanczosa
-for kernel_name, kernel in [('linear', np.ones(3)), ('Lanczos', lanczos(np.arange(-a, a+1)))]:
+# Parametry
+N = 100
+multipliers = [2, 4, 10]
+a = 3  # parametr dla jąder Lanczosa i sinc
+
+# Dane wejściowe
+x_original = np.linspace(-np.pi, np.pi, N)
+y_original = simplesin(x_original)
+
+# Wykresy dla różnych jąder
+kernels = [('linear', np.ones(3)), ('Lanczos', lanczos_kernel(a)(np.arange(-a, a+1))), ('sinc', sinc_kernel(a)(np.linspace(-a, a, 2*a+1)))]
+for kernel_name, kernel in kernels:
     for multiplier in multipliers:
-
         x_interpolate, y_interpolate = interpolate_function(x_original, y_original, kernel, multiplier)
-
         mse_original = np.mean((simplesin(x_interpolate) - y_interpolate)**2)
         print(f'MSE for {kernel_name} kernel with {multiplier} times more points (original function): {mse_original}')
-
         plt.plot(x_interpolate, y_interpolate, label=f'{kernel_name} kernel, {multiplier}x points (original function)', alpha=0.7)
 
 plt.legend()
 plt.show()
 
+# Dane wejściowe
+x_original = np.linspace(-np.pi, np.pi, N, endpoint=False)  # Wykluczenie punktu x=0 dla funkcji inverted_sin
+
+# Wykresy dla różnych jąder i funkcji
+plt.figure(figsize=(15, 10))
+
+# Funkcja inverted_sin
+plt.subplot(2, 1, 1)
+y_original_inverted = inverted_sin(x_original)
+plt.plot(x_original, y_original_inverted, label='Original inverted_sin function', color='blue', alpha=0.7)
+
+for kernel_name, kernel in kernels:
+    for multiplier in multipliers:
+        x_interpolate, y_interpolate = interpolate_function(x_original, y_original_inverted, kernel, multiplier)
+        mse_inverted = np.mean((inverted_sin(x_interpolate) - y_interpolate)**2)
+        print(f'MSE for {kernel_name} kernel with {multiplier} times more points (inverted_sin function): {mse_inverted}')
+        plt.plot(x_interpolate, y_interpolate, label=f'{kernel_name} kernel, {multiplier}x points (inverted_sin function)', alpha=0.7)
+
+plt.legend()
+plt.title("Interpolation of Inverted Sin Function")
+
+# Funkcja sign
+plt.subplot(2, 1, 2)
+y_original_sign = sign(x_original)
+plt.plot(x_original, y_original_sign, label='Original sign function', color='blue', alpha=0.7)
+
+for kernel_name, kernel in kernels:
+    for multiplier in multipliers:
+        x_interpolate, y_interpolate = interpolate_function(x_original, y_original_sign, kernel, multiplier)
+        mse_sign = np.mean((sign(x_interpolate) - y_interpolate)**2)
+        print(f'MSE for {kernel_name} kernel with {multiplier} times more points (sign function): {mse_sign}')
+        plt.plot(x_interpolate, y_interpolate, label=f'{kernel_name} kernel, {multiplier}x points (sign function)', alpha=0.7)
+
+plt.legend()
+plt.title("Interpolation of Sign Function")
+
+plt.tight_layout()
+plt.show()
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
